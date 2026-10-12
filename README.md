@@ -43,20 +43,7 @@ ready. Thus, downstream download pages can safely use those stable names.
 
 ## Verifying Signatures
 
-CI signs each OCI image with [cosign](https://github.com/sigstore/cosign) and
-a project key. The public half is `cosign.pub` in this repository. The build
-copies it into the image at `/usr/share/pki/containers/xfce-linux.pub`, where
-`bootc` reads it. See [`docs/signing.md`](docs/signing.md).
-
-The project uses a key, not a keyless signature, because `bootc` verifies
-through containers-policy(5). That policy type takes a path to a public key
-and cannot express a Fulcio certificate identity.
-
-**OCI images:**
-
-```bash
-cosign verify --key cosign.pub ghcr.io/tuna-os/xfce-linux:latest
-```
+**OCI images:** Image signing is not yet in effect. See [`docs/signing.md`](docs/signing.md) for the implementation plan.
 
 **Live ISO signatures** (`.sig` and `.cert` files accompany each dated ISO,
 such as `xfce-linux-live-<date>-<sha>.iso.sig`):
@@ -68,6 +55,8 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-identity-regexp 'https://github.com/tuna-os/xfce-linux/\.github/workflows/build-iso\.yml@.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
+
+(Note: Live ISO signing currently fails on recent builds — see the build logs for details.)
 
 ## Docs
 
