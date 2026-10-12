@@ -43,7 +43,7 @@ ready. Thus, downstream download pages can safely use those stable names.
 
 ## Verifying Signatures
 
-**OCI images:** Image signing is not yet in effect. See [`docs/signing.md`](docs/signing.md) for the implementation plan.
+**OCI images:** Image signature verification is not yet in effect. See [`docs/signing.md`](docs/signing.md) for the implementation plan.
 
 **Live ISO signatures** (`.sig` and `.cert` files accompany each dated ISO,
 such as `xfce-linux-live-<date>-<sha>.iso.sig`):
@@ -56,7 +56,7 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-(Note: Live ISO signing currently fails on recent builds. See the build logs for details.)
+(Note: Live ISO signature verification now fails on recent builds. See the build logs for details.)
 
 ## Docs
 
