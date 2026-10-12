@@ -56,7 +56,7 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-(Note: Live ISO signing currently fails on recent builds — see the build logs for details.)
+(Note: Live ISO signing currently fails on recent builds. See the build logs for details.)
 
 ## Docs
 
