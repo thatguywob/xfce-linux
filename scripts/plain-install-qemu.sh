@@ -1,8 +1,7 @@
 #!/usr/bin/bash
 # scripts/plain-install-qemu.sh
-# Run fisherman with a plain (unencrypted) recipe via SSH into the live QEMU
-# VM. Mirrors scripts/luks-install-qemu.sh minus everything LUKS-specific —
-# this is the install path most users actually run.
+# Run fisherman with a plain (unencrypted) recipe via SSH into the live QEMU VM.
+# Uses shared orchestration from lib-install-qemu.sh.
 
 set -euo pipefail
 
@@ -18,24 +17,12 @@ FISHER_REPO="$4"
 
 DISK="/dev/vda"
 PAYLOAD_IMAGE=$(cat "${TARGET}/payload_ref" | tr -d '[:space:]')
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o PreferredAuthentications=password -o ServerAliveInterval=30 -o ServerAliveCountMax=20"
-SSH="sshpass -p live ssh $SSH_OPTS liveuser@127.0.0.1 -p ${SSH_PORT}"
-SCP="sshpass -p live scp $SSH_OPTS -P ${SSH_PORT}"
 
-# Use local containers-storage if the image is cached there (offline install);
-# otherwise fall back to a network pull via docker://.
-if $SSH "sudo podman image exists '${PAYLOAD_IMAGE}' 2>/dev/null"; then
-	INSTALL_IMAGE="containers-storage:${PAYLOAD_IMAGE}"
-	echo "Image found in local containers-storage — using offline install."
-else
-	INSTALL_IMAGE="docker://${PAYLOAD_IMAGE}"
-	echo "Image not in local store — fisherman will pull from network."
-fi
+# Source shared library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib-install-qemu.sh"
 
-RECIPE_TMP=$(mktemp /tmp/plain-recipe-XXXXXX.json)
-trap 'rm -f "${RECIPE_TMP}"' EXIT
-# Single-variant repo: optional <target>/composefs and <target>/bootloader
-# files override the defaults (composefs-backed, systemd-boot — dakota style).
+# Read target overrides
 COMPOSEFS_BACKEND=$(cat "${TARGET}/composefs" 2>/dev/null | tr -d '[:space:]' || echo "true")
 BOOTLOADER=$(cat "${TARGET}/bootloader" 2>/dev/null | tr -d '[:space:]' || echo "systemd")
 
@@ -45,49 +32,32 @@ if [[ "${BOOTLOADER}" == "grub" ]]; then BOOTLOADER="grub2"; fi
 # Determine target filesystem
 FILESYSTEM="btrfs"
 
-echo "Mounting scratch disk (/dev/vdb) over /var/tmp..."
-$SSH 'sudo bash -c "
-    mkfs.ext4 -F /dev/vdb >/dev/null
-    umount /var/tmp 2>/dev/null || true
-    mount /dev/vdb /var/tmp
-    echo \"/var/tmp is now disk-backed on /dev/vdb\"
-"'
+# Resolve install image (offline or network)
+INSTALL_IMAGE=$(lib_resolve_install_image)
+
+# Mount scratch disk
+lib_mount_scratch_disk
+
+# Generate recipe with plain (no encryption) config
+RECIPE_TMP=$(mktemp /tmp/plain-recipe-XXXXXX.json)
+trap 'rm -f "${RECIPE_TMP}"' EXIT
 
 if [[ "${COMPOSEFS_BACKEND}" == "true" ]]; then
 	# Composefs path (dakota): podman-based install with VFS containers-storage.
 	printf '{\n  "disk": "%s",\n  "filesystem": "%s",\n  "image": "%s",\n  "composeFsBackend": true,\n  "bootloader": "%s",\n  "hostname": "xfce-linux-plain-test",\n  "encryption": {"type": "none"},\n  "flatpaks": []\n}\n' \
 		"${DISK}" "${FILESYSTEM}" "${INSTALL_IMAGE}" "${BOOTLOADER}" >"${RECIPE_TMP}"
-	$SCP "${RECIPE_TMP}" liveuser@127.0.0.1:/tmp/plain-recipe.json
-	echo "Uploaded recipe — running fisherman (takes several minutes)..."
-	$SCP "scripts/fisherman-install.sh" liveuser@127.0.0.1:/tmp/fisherman-install.sh
-	$SSH 'sudo bash /tmp/fisherman-install.sh /tmp/plain-recipe.json'
 else
 	# Ostree path (stable, lts): bootcDirect — fisherman runs bootc natively.
 	# Empty image triggers bootcDirect; targetImgref sets the day-2 rebase ref.
 	printf '{\n  "disk": "%s",\n  "filesystem": "%s",\n  "image": "",\n  "targetImgref": "%s",\n  "composeFsBackend": false,\n  "bootloader": "%s",\n  "hostname": "xfce-linux-plain-test",\n  "encryption": {"type": "none"},\n  "flatpaks": []\n}\n' \
 		"${DISK}" "${FILESYSTEM}" "${PAYLOAD_IMAGE}" "${BOOTLOADER}" >"${RECIPE_TMP}"
-	$SCP "${RECIPE_TMP}" liveuser@127.0.0.1:/tmp/plain-recipe.json
-	echo "Uploaded recipe — building patched fisherman for bootcDirect..."
-	FISHERMAN_BIN=$(mktemp /tmp/fisherman-XXXXXX)
-	trap "rm -f '${RECIPE_TMP}' '${FISHERMAN_BIN}'" EXIT
-	(cd "${FISHER_REPO}" && CGO_ENABLED=0 go build -o "${FISHERMAN_BIN}" ./cmd/fisherman/)
-	$SCP "${FISHERMAN_BIN}" liveuser@127.0.0.1:/tmp/fisherman
-	$SSH 'chmod +x /tmp/fisherman'
-	echo "Running fisherman (bootcDirect, takes several minutes)..."
-	$SCP "scripts/fisherman-install.sh" liveuser@127.0.0.1:/tmp/fisherman-install.sh
-	if ! $SSH 'sudo FISHERMAN_BIN=/tmp/fisherman bash /tmp/fisherman-install.sh /tmp/plain-recipe.json'; then
-		echo "=== INSTALL FAILURE DIAGNOSTICS ==="
-		echo "--- dmesg ---"
-		$SSH 'sudo dmesg | tail -n 100' || true
-		echo "--- journalctl ---"
-		$SSH 'sudo journalctl -n 100 --no-pager' || true
-		echo "--- systemd-oomd status ---"
-		$SSH 'sudo systemctl status systemd-oomd --no-pager' || true
-		exit 1
-	fi
 fi
 
-echo "Patching BLS entries to enable dual serial+VT console..."
+# Execute install
+lib_execute_install "${RECIPE_TMP}" "/tmp/plain-recipe.json"
+
+# Patch BLS entries for dual serial+VT console
+echo "Patching BLS entries to enable dual serial+VT console..." >&2
 $SSH 'sudo bash -c "
     set -euo pipefail
     BOOT_PART=\"/dev/vda1\"
@@ -110,9 +80,5 @@ $SSH 'sudo bash -c "
     echo \"BLS patch: \$COUNT entries updated\"
 "'
 
-echo "Install complete. Shutting down live QEMU..."
-SOCAT_PREFIX=""
-if ! test -w "${MONITOR_LIVE}" 2>/dev/null; then SOCAT_PREFIX="sudo"; fi
-echo "system_powerdown" | $SOCAT_PREFIX socat - "UNIX-CONNECT:${MONITOR_LIVE}" 2>/dev/null || true
-sleep 5
-echo "quit" | $SOCAT_PREFIX socat - "UNIX-CONNECT:${MONITOR_LIVE}" 2>/dev/null || true
+# Shutdown QEMU
+lib_shutdown_qemu
