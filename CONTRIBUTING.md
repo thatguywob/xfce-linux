@@ -201,8 +201,8 @@ python3 -m pytest tests/pytest/ -v
 ### Boot Testing
 
 `just boot-vm` boots `bootable.raw` (run `just generate-bootable-image` first).
-It takes one of two paths depending on the host, and each exposes a **different**
-set of endpoints — check the recipe's output before connecting.
+It takes one of two paths, which the host selects, and each path has a
+**different** set of endpoints. Read the recipe's output before you connect.
 
 **Native QEMU** (used when `qemu-system-x86_64` is on `PATH`):
 
@@ -223,8 +223,8 @@ ssh root@127.0.0.1 -p 2223
 vncviewer 127.0.0.1:1
 ```
 
-The QEMU monitor is exposed as a Unix socket at `./qemu-monitor.sock` rather
-than a TCP port.
+QEMU exposes its monitor as a Unix socket at `./qemu-monitor.sock`, not as a
+TCP port.
 
 `sshd` is enabled, but the image ships no authorized keys and keeps OpenSSH's
 default `PermitRootLogin prohibit-password`, so `ssh root@` fails with
@@ -233,14 +233,15 @@ console first and append your public key to `/root/.ssh/authorized_keys`.
 
 **Podman fallback** (used when `qemu-system-x86_64` is missing): the recipe runs
 `ghcr.io/qemus/qemu:latest` instead, and prints a web/VNC URL on the first free
-port from `8006` upward. SSH is forwarded on `127.0.0.1:2222`, not 2223.
+port from `8006` upward. The container forwards SSH on `127.0.0.1:2222`, not
+2223.
 
 ### Verify XFCE Installation
 
 The image is built from source by BuildStream on a freedesktop-sdk base
 (`gnome-build-meta.bst:oci/gnomeos/stack.bst`). There is **no package manager
-and no dpkg database inside the guest** — verify by inspecting the filesystem
-and systemd instead.
+and no dpkg database inside the guest**. Examine the filesystem and systemd
+instead.
 
 ```bash
 # Check XFCE binaries
