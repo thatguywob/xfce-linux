@@ -200,37 +200,62 @@ python3 -m pytest tests/pytest/ -v
 
 ### Boot Testing
 
+`just boot-vm` boots `bootable.raw` (run `just generate-bootable-image` first).
+It takes one of two paths, which the host selects, and each path has a
+**different** set of endpoints. Read the recipe's output before you connect.
+
+**Native QEMU** (used when `qemu-system-x86_64` is on `PATH`):
+
 ```bash
-# Start VM
+# Start VM (daemonized)
 just boot-vm
 
-# Access via serial console (in another terminal)
-telnet 127.0.0.1 4444
+# Serial console on ttyS0 (in another terminal)
+telnet 127.0.0.1 4445
 
-# Or via SSH (after boot)
-ssh root@127.0.0.1 -p 2221
+# Serial debug shell on ttyS1
+telnet 127.0.0.1 4447
 
-# Or via VNC
-vncviewer 127.0.0.1:99
+# SSH (after boot)
+ssh root@127.0.0.1 -p 2223
+
+# VNC — QEMU display :1, i.e. TCP 5901
+vncviewer 127.0.0.1:1
 ```
+
+QEMU exposes its monitor as a Unix socket at `./qemu-monitor.sock`, not as a
+TCP port.
+
+`sshd` is enabled, but the image ships no authorized keys and keeps OpenSSH's
+default `PermitRootLogin prohibit-password`, so `ssh root@` fails with
+`Permission denied (publickey)` until you add your own key. Log in on the serial
+console first and append your public key to `/root/.ssh/authorized_keys`.
+
+**Podman fallback** (used when `qemu-system-x86_64` is missing): the recipe runs
+`ghcr.io/qemus/qemu:latest` instead, and prints a web/VNC URL on the first free
+port from `8006` upward. The container forwards SSH on `127.0.0.1:2222`, not
+2223.
 
 ### Verify XFCE Installation
 
-```bash
-# List XFCE packages
-dpkg -l | grep -i xfce
+The image is built from source by BuildStream on a freedesktop-sdk base
+(`gnome-build-meta.bst:oci/gnomeos/stack.bst`). There is **no package manager
+and no dpkg database inside the guest**. Examine the filesystem and systemd
+instead.
 
+```bash
 # Check XFCE binaries
 ls /usr/bin | grep -E 'xfce|xf' | head -20
 
-# Verify plugins
-ls -la /usr/lib/x86_64-linux-gnu/xfce4/panel/plugins/
+# Inspect the XFCE library tree (panel plugins live under here)
+ls -la /usr/lib/xfce4/
 
-# Check GDM status
+# Check the display manager
 systemctl status gdm
 
-# View XFCE log
-journalctl -u xfce-session -n 50
+# View greeter/session logs — the session is 'xfce-wayland', started by GDM;
+# there is no xfce-session unit
+journalctl -u gdm -n 50
 ```
 
 ## Known Issues & Solutions
