@@ -18,7 +18,8 @@ status, start with the top-level docs instead:
 - **[ci-and-iso-pipeline.md](ci-and-iso-pipeline.md)** — the full CI to
   image to ISO chain, with a log of past problems and fixes. Update this
   file when you fix a CI or ISO bug (see AGENTS.md's CI gate rules).
-- **[`signing.md`](signing.md)** — how cosign signs images.
+- **[`signing.md`](signing.md)** — the cosign setup for image signatures
+  (not yet in effect).
 - **[adr/](adr/)** — architecture decision records (for example,
   [0001-wayland-greeter.md](adr/0001-wayland-greeter.md)).
 - **[technical/](technical/)** and **[reference/](reference/)** — dated

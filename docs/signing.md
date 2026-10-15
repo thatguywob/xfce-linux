@@ -1,7 +1,8 @@
 # Image signatures
 
-XFCE Linux signs its OCI images with a cosign key. It does not use keyless
-signatures.
+XFCE Linux will sign its OCI images with a cosign key, not a keyless
+signature. CI does not sign images yet: no key pair exists, `cosign.pub` is
+not in the repository, and the sign step skips (see "Before the key exists").
 
 ## Why a key
 
@@ -73,8 +74,8 @@ zirconium's `elements/zirconium/common.bst`:
 - add `/etc/containers/policy.json` to the element's `overlap-whitelist`,
   because the base layer ships one
 
-Until that change lands, CI signs each image, but the installed system does
-not enforce the signature.
+Until that change lands, the installed system does not enforce a signature,
+even after CI signs images.
 
 ## Verify an image
 
