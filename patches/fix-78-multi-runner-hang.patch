@@ -28,7 +28,7 @@ index 9a66377..22dcc5d 100644
 +    # not have completed, so the final assembly would start from a
 +    # half-written cache.
 +    if: always() && !contains(needs.*.result, 'cancelled')
-     # ⚠️ Was Blacksmith build-amd64 (32-core) final assembly. Now 2-core
+     # ⚠️ Was 32-core build-amd64 final assembly. Now 2-core
      # GitHub-hosted — candidate for larger runner/kanpur if it nears 6h.
 -    runs-on: ubuntu-24.04
 +    runs-on: ${{ vars.ACTIONS_RUNNER_LABEL && format('runs-on={0}/runner={1}', github.run_id, vars.ACTIONS_RUNNER_LABEL) || 'ubuntu-24.04' }}
