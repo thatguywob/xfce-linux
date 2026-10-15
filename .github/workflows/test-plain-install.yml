@@ -21,6 +21,7 @@ on:
       - 'iso.justfile'
       - 'just/**'
       - 'scripts/plain-install-qemu.sh'
+      - 'scripts/lib-install-qemu.sh'
       - 'scripts/fisherman-install.sh'
       - '.github/workflows/test-plain-install.yml'
   workflow_dispatch:
