@@ -2,10 +2,14 @@ name: PR Build Changed Elements
 
 # Builds only the .bst elements a PR touches, against the warm GHCR core
 # CAS cache. This is what turns "lint passed" into "the change compiles".
-# Required check: no paths filter so it reports on every PR (preventing automerge deadlocks).
+# Not a required check, so it is path-filtered: it only builds changed
+# `elements/**/*.bst`, and does nothing for any other change.
 
 on:
   pull_request:
+    paths:
+      - 'elements/**.bst'
+      - '.github/workflows/pr-build-changed.yml'
 
 concurrency:
   group: pr-build-${{ github.ref }}

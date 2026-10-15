@@ -13,7 +13,7 @@ elements/**  ──►  Build xfce-linux (Multi-Runner)  ──►  ghcr.io/tuna
               Build and Publish xfce-linux Live ISO  ──►  R2: xfce-linux/xfce-linux-live-*.iso
                         │
                         ▼ (boot gate: XFCE_LINUX_LIVE_READY on serial + screenshot)
-              LUKS Install End-to-End Test (PR / weekly / dispatch)
+              LUKS Install End-to-End Test (PR round-robin / weekly / dispatch)
 ```
 
 ### Multi-runner build (`build-multirunner.yml`)
@@ -143,9 +143,9 @@ They also include the 52-test luks-unlock suite and `test_iso_invariants.py`.
 Each invariant represents a defect that reached users.
 
 The BuildStream graph gate runs `bst show --deps all` on the release target and
-resolves junctions. Other checks are `Just Parse` and `pr-build-changed.yml`.
-The latter builds the elements that a PR touches against the core CAS from
-GHCR. It became a required check in xfce-linux#41.
+resolves junctions. `Just Parse` is also a check. `pr-build-changed.yml`
+builds the elements that a PR changes against the core CAS from GHCR. It is
+not a required check, and it runs only when a PR changes a `.bst` element.
 
 Post-merge: salvage-enabled nightly world build → ISO boot gate
 (ready-marker + screenshot artifact) → weekly LUKS install e2e
@@ -158,6 +158,32 @@ required jobs. An absent required check prevents automerge. If you rename a
 required job, update the branch protection contexts in the same PR. Do not wrap
 a gate in `|| echo`. Such a wrapper hid failures in bst-validate and pytest for
 months.
+
+### Pull request CI (`test.yml`)
+
+All pre-merge checks are in one workflow, `test.yml`. Its `changes` job lists
+the changed files and starts only the jobs that those files can affect. A
+skipped job reports success, so each required check always reports. If the
+`changes` job fails, all checks run. A change to `test.yml` runs all checks.
+
+| Job | Runs when the change touches |
+|-----|------------------------------|
+| shellcheck | `*.sh`, `*.bash` |
+| yamllint | `*.yml`, `*.yaml` |
+| actionlint | `.github/workflows/`, `.github/actions/` |
+| Renovate Config Validate | `renovate.json` |
+| lint .bst files | `*.bst` |
+| BuildStream Graph | a file outside docs, tests, scripts, tools, `xfce-linux/`, `.github/` and the justfiles |
+| Unit Tests | a file that is not `*.md` or `LICENSE*` |
+| Just Parse | `Justfile`, `iso.justfile`, `just/` |
+
+The plain and LUKS install tests build the same ISO and use different install
+paths. A change to their shared inputs (`xfce-linux/`, the justfiles,
+`scripts/lib-install-qemu.sh`, `scripts/fisherman-install.sh`) runs one of
+the two tests. The run number selects the test. Set the repository variable
+`E2E_ROUND_ROBIN_SIZE` to 2 to run both. A change to the install script or
+workflow of one test always runs that test. The two tests run fully on their
+weekly schedules and on manual dispatch.
 
 ## Rollback
 
