@@ -67,8 +67,8 @@ lib_run_composefs_install() {
 	local recipe_tmp="$1"
 	local recipe_dest="$2"
 	
-	echo "Uploaded recipe — running fisherman (takes several minutes)..." >&2
 	$SCP "${recipe_tmp}" liveuser@127.0.0.1:"${recipe_dest}"
+	echo "Uploaded recipe — running fisherman (takes several minutes)..." >&2
 	$SCP "scripts/fisherman-install.sh" liveuser@127.0.0.1:/tmp/fisherman-install.sh
 	$SSH "sudo bash /tmp/fisherman-install.sh ${recipe_dest}"
 }
@@ -109,10 +109,6 @@ lib_run_bootcdirect_install() {
 lib_execute_install() {
 	local recipe_tmp="$1"
 	local recipe_dest="$2"
-	
-	# Upload recipe
-	$SCP "${recipe_tmp}" liveuser@127.0.0.1:"${recipe_dest}"
-	
 	if [[ "${COMPOSEFS_BACKEND}" == "true" ]]; then
 		lib_run_composefs_install "${recipe_tmp}" "${recipe_dest}"
 	else
