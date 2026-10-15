@@ -226,6 +226,11 @@ jobs:
           just bst artifact checkout \
             "${{ needs.multirunner.outputs.final_target }}" --directory /src/.build-out
           du -sh .build-out
+          # chunkify needs artifact list-contents to generate its component
+          # manifest. Do that while the CAS still exists; regenerating it from
+          # `just export` after the deletion below fails with "None of the
+          # specified artifacts are cached".
+          python3 scripts/gen-filemap.py
           # Removed inside the bst container: the cache tree is written by
           # that container's root, so a host-side rm can hit permission
           # errors depending on the podman mapping.
@@ -245,8 +250,10 @@ jobs:
           OCI_IMAGE_REVISION: ${{ github.sha }}
           OCI_IMAGE_VERSION: ${{ steps.version.outputs.version }}
           OCI_IMAGE_CREATED: ${{ steps.timestamp.outputs.created }}
-          # The CAS is gone by now (previous step); .build-out is the artifact.
+          # The CAS is gone by now (previous step); reuse the artifact checkout
+          # and the chunkify manifest generated before the cache was deleted.
           EXPORT_REUSE_CHECKOUT: '1'
+          CHUNKIFY_REUSE_FILEMAP: '1'
         run: |
           just export
           echo "image_ref=${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"

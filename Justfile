@@ -378,8 +378,21 @@ chunkify image_ref:
         gcc -O2 -o "$FAKECAP_RESTORE" "{{justfile_directory()}}/files/fakecap/fakecap-restore.c"
     fi
 
-    echo "==> Generating component filemap..."
-    python3 scripts/gen-filemap.py
+    if [ "${CHUNKIFY_REUSE_FILEMAP:-0}" = "1" ]; then
+        # build_final generates these while the BuildStream CAS still exists,
+        # then deletes the CAS to leave enough room for the OCI export (#159).
+        # Fail explicitly instead of applying an empty or stale manifest.
+        for manifest in files/filemap.json files/fakecap-manifest.tsv; do
+            if [ ! -s "$manifest" ]; then
+                echo "ERROR: CHUNKIFY_REUSE_FILEMAP=1 but $manifest is missing or empty" >&2
+                exit 1
+            fi
+        done
+        echo "==> Reusing the existing component filemap..."
+    else
+        echo "==> Generating component filemap..."
+        python3 scripts/gen-filemap.py
+    fi
 
     LOWER=$($SUDO_CMD podman image mount "{{image_ref}}")
 

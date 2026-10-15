@@ -17,6 +17,7 @@ MULTIRUNNER = (REPO / ".github/workflows/build-multirunner.yml").read_text()
 PR_BUILD = (REPO / ".github/workflows/pr-build-changed.yml").read_text()
 BST_CONF = (REPO / "buildstream-ci.conf").read_text()
 EXPORT_RECIPE = (REPO / "just/buildstream.just").read_text()
+ROOT_JUSTFILE = (REPO / "Justfile").read_text()
 RESTORE_SCRIPT = REPO / "scripts/cas-restore-stream.sh"
 
 # Everything in build_final, from the job key to the end of the file.
@@ -48,14 +49,19 @@ def test_cas_is_dropped_before_the_image_is_exported():
     "Export OCI image": the cache and the squashed image do not fit
     together. The artifact checkout must precede the export, and the cache
     must be gone in between."""
-    checkout = BUILD_FINAL.index("artifact checkout")
+    checkout = BUILD_FINAL.index("just bst artifact checkout")
+    filemap = BUILD_FINAL.index("python3 scripts/gen-filemap.py")
     drop = BUILD_FINAL.index("rm -rf /cache/cas")
-    export = BUILD_FINAL.index("just export")
-    assert checkout < drop < export, (
-        "build_final must check the artifact out, drop the CAS, then export"
+    export = BUILD_FINAL.index("\n          just export")
+    assert checkout < filemap < drop < export, (
+        "build_final must check the artifact out, generate chunkify's manifest, "
+        "drop the CAS, then export"
     )
     assert "EXPORT_REUSE_CHECKOUT" in BUILD_FINAL, (
         "the export step must tell `just export` not to re-checkout from the deleted cache"
+    )
+    assert "CHUNKIFY_REUSE_FILEMAP" in BUILD_FINAL, (
+        "chunkify must reuse the manifest generated before the CAS was deleted"
     )
 
 
@@ -67,6 +73,15 @@ def test_export_recipe_honours_the_reuse_switch():
     assert re.search(r'if \[ ! -d \.build-out \]', EXPORT_RECIPE), (
         "reuse mode must verify .build-out exists"
     )
+
+
+def test_chunkify_honours_the_filemap_reuse_switch():
+    """Generating the filemap queries every artifact in the BuildStream CAS.
+    build_final deletes that CAS before export, so chunkify must reuse the
+    manifest made immediately before deletion and reject missing outputs."""
+    assert "CHUNKIFY_REUSE_FILEMAP" in ROOT_JUSTFILE
+    assert "files/filemap.json files/fakecap-manifest.tsv" in ROOT_JUSTFILE
+    assert 'if [ ! -s "$manifest" ]' in ROOT_JUSTFILE
 
 
 def test_buildstream_cache_has_a_quota():
