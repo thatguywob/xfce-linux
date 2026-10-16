@@ -4,8 +4,11 @@ sources:
 - kind: git_repo
   url: gnome:gnome-build-meta.git
   track: gnome-50
-  ref: 50.1-1-gc918b12e3970866717917090396b416b15f45fd0
+  ref: 50.4-0-g8524013485013dd5616bfff02dbeab274d5a4553
 - kind: patch_queue
+  # GNOME's secure-boot elements refer to generated key paths that do not
+  # exist in a clean source checkout. Keep the existing generated-source
+  # support, but drop the unrelated local patches so more keys align.
   path: patches/gnome-build-meta
 
 config:
