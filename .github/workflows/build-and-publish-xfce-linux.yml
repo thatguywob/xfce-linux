@@ -61,30 +61,36 @@ jobs:
           key: bst-sources-xfce-linux-v1-${{ hashFiles('elements/**/*.bst') }}
           restore-keys: bst-sources-xfce-linux-v1-
 
-      - name: Write BuildStream CI config
-        run: |
-          mkdir -p logs
-          cat > buildstream-ci.conf << EOF
-          scheduler:
-            on-error: continue
-            fetchers: 32
-            builders: 12
-            network-retries: 5
-          logging:
-            message-format: '[%{wallclock}][%{elapsed}][%{key}][%{element}] %{action} %{message}'
-            error-lines: 80
-          cachedir: /root/.cache/buildstream
-          logdir: /src/logs
-          build:
-            retry-failed: True
-          cache:
-            cache-buildtrees: never
-          EOF
+      - name: Generate BuildStream CI config
+        # The repository variable is safe to expose, while the private key
+        # remains a secret. Until both are provisioned this produces a valid
+        # local-only config; requesting RE without the key fails closed.
+        env:
+          CASD_CLIENT_CERT: ${{ vars.CASD_CLIENT_CERT }}
+          CASD_CLIENT_KEY: ${{ secrets.CASD_CLIENT_KEY }}
+        uses: ./.github/actions/generate-bst-ci-config
+        with:
+          enable-remote-execution: ${{ vars.CASD_CLIENT_CERT != '' }}
+          enable-push: ${{ inputs.push_image != false }}
 
       - name: Build ${{ env.BST_TARGET }}
         env:
           BST_FLAGS: --no-interactive --config /src/buildstream-ci.conf
-        run: just bst build "$BST_TARGET"
+          RE_EXPECTED: ${{ vars.CASD_CLIENT_CERT != '' }}
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          just bst --log-file /src/logs/build.log build "$BST_TARGET" 2>&1 | tee /tmp/bst-console.log
+          # A cache hit does not prove that BuildStream loaded the executor.
+          # Fail closed when its startup banner is absent.
+          if [ "$RE_EXPECTED" = "true" ]; then
+            grep -q "Remote Execution Configuration" /tmp/bst-console.log \
+              || { echo "::error::remote execution requested but not engaged"; exit 1; }
+          fi
+
+      - name: Remove CASD client credentials
+        if: always()
+        run: rm -f client.key client.crt
 
       - name: Upload build logs
         if: always()
