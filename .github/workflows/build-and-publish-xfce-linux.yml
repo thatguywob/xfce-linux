@@ -71,7 +71,7 @@ jobs:
         uses: ./.github/actions/generate-bst-ci-config
         with:
           enable-remote-execution: ${{ vars.CASD_CLIENT_CERT != '' }}
-          enable-push: ${{ inputs.push_image != false }}
+          enable-push: ${{ github.event_name != 'workflow_dispatch' || inputs.push_image }}
 
       - name: Build ${{ env.BST_TARGET }}
         env:
@@ -118,7 +118,7 @@ jobs:
         run: just lint
 
       - name: Login to GHCR
-        if: ${{ github.event_name != 'pull_request' && inputs.push_image != false }}
+        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.push_image) }}
         run: |
           echo "${{ env.GITHUB_TOKEN }}" | \
             sudo podman login ghcr.io --username "${{ github.actor }}" --password-stdin
@@ -126,7 +126,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push to GHCR
-        if: ${{ github.event_name != 'pull_request' && inputs.push_image != false }}
+        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.push_image) }}
         run: |
           DATE_TAG=$(date -u +%Y%m%d)
           for tag in latest "$DATE_TAG" "${{ github.sha }}"; do
@@ -139,7 +139,7 @@ jobs:
           echo "Pushed ${IMAGE_REGISTRY}/${IMAGE_NAME}:{latest,${DATE_TAG},${{ github.sha }}}"
 
       - name: Verify published image
-        if: ${{ github.event_name != 'pull_request' && inputs.push_image != false }}
+        if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.push_image) }}
         run: |
           sudo podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:latest"
           sudo podman inspect "${IMAGE_REGISTRY}/${IMAGE_NAME}:latest" \
