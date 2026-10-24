@@ -99,6 +99,8 @@ podman ps | grep bst2
 watch -n 5 'podman stats --no-stream'
 ```
 
+The dashboard entrypoint keeps HTTP and process orchestration compatibility. Reusable log parsing and state snapshots live in `tools/bst_dashboard/parser.py` and `tools/bst_dashboard/model.py`, so parser behavior can be tested without starting dashboard threads or Podman.
+
 ### Key Milestones to Look For
 1. **Fetch phase** — Sources downloaded from remote caches
 2. **Bootstrap phase** — Base SDK building (may take time)
