@@ -176,3 +176,14 @@ def test_python_lint_and_coverage_are_active():
     assert "--cov-report=xml" in command
     upload = next(step for step in steps if step.get("uses", "").startswith("codecov/codecov-action@"))
     assert upload["with"]["files"] == "./coverage.xml"
+
+
+def test_ste_workflow_is_pinned_to_full_commit_sha():
+    """The shared reusable STE workflow must use an immutable commit SHA."""
+    workflow = (REPO / ".github" / "workflows" / "ste.yml").read_text()
+    refs = re.findall(
+        r"uses:\s+tuna-os/\.github/\.github/workflows/ste-lint\.yml@(\S+)",
+        workflow,
+    )
+    assert refs, "ste-lint reusable workflow reference missing"
+    assert all(re.fullmatch(r"[0-9a-f]{40}", ref.split("#")[0].strip()) for ref in refs), refs
