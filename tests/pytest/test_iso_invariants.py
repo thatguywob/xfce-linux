@@ -126,3 +126,15 @@ def test_scheduled_multirunner_preserves_in_progress_builds():
     assert re.search(
         r"^\s*cancel-in-progress:\s*false\s*(?:#.*)?$", workflow, re.MULTILINE
     )
+
+
+def test_iso_signing_preserves_detached_outputs_with_cosign3():
+    """Cosign 3's bundle defaults ignore the detached output paths."""
+    workflow = (REPO / ".github/workflows/build-iso.yml").read_text()
+    signing = workflow.split("cosign sign-blob", 1)[1].split("- name:", 1)[0]
+    assert "--use-signing-config=false" in signing
+    assert "--new-bundle-format=false" in signing
+    for suffix in ("sig", "cert"):
+        assert f'test -s "${{ISO}}.{suffix}"' in signing
+    assert '--output-signature "${ISO}.sig"' in signing
+    assert '--output-certificate "${ISO}.cert"' in signing

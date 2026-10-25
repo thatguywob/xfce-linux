@@ -121,10 +121,13 @@ jobs:
         if: ${{ inputs.skip_upload != true && github.event_name != 'pull_request' }}
         run: |
           ISO="${{ steps.iso.outputs.path }}"
-          cosign sign-blob --yes \
+          # cosign 3 defaults to bundles; retain detached outputs for ISO consumers.
+          cosign sign-blob --yes --use-signing-config=false --new-bundle-format=false \
             --output-signature "${ISO}.sig" \
             --output-certificate "${ISO}.cert" \
             "$ISO"
+          test -s "${ISO}.sig"
+          test -s "${ISO}.cert"
           echo "sig_path=${ISO}.sig" >> "$GITHUB_OUTPUT"
           echo "cert_path=${ISO}.cert" >> "$GITHUB_OUTPUT"
 
