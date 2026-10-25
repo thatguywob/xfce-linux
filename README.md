@@ -69,6 +69,13 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
+## Community showcase proposal
+
+The [community showcase proposal kit](docs/outreach/community-showcase-proposal.md)
+contains reviewable showcase pitches, BuildStream pipeline details, bootc
+repurposing narratives, and forum publication checklists. External showcase
+outreach is tracked in [#219](https://github.com/tuna-os/xfce-linux/issues/219).
+
 ## Docs
 
 - [XFCE Linux on tunaos.org](https://tunaos.org/docs/xfce-linux)
