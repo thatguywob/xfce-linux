@@ -8,7 +8,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 

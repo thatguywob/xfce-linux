@@ -17,7 +17,6 @@ Credentials come from the docker/oras auth file written by `oras login`
 (~/.docker/config.json), falling back to an anonymous token.
 """
 
-import base64
 import hashlib
 import http.client
 import json

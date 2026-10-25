@@ -99,7 +99,7 @@ def list_all_contents(elements: list[str]) -> dict[str, list[str]]:
     result: dict[str, list[str]] = defaultdict(list)
     current: str | None = None
 
-    for raw_line in (strip_ansi(l) for l in out.splitlines()):
+    for raw_line in (strip_ansi(item) for item in out.splitlines()):
         line = raw_line.rstrip()
         if not line:
             continue

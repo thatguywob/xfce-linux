@@ -80,3 +80,8 @@ files/xfce-binaries/
 files/filemap.json
 # Fakecap privilege manifest — generated alongside filemap.json (#17)
 files/fakecap-manifest.tsv
+
+# Python coverage reports
+.coverage
+coverage.xml
+htmlcov/

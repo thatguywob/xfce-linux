@@ -17,7 +17,9 @@ Usage:
     sudo python3 apply-xattrs.py <rootfs> [filemap.json]
 """
 from __future__ import annotations
-import json, os, sys
+import json
+import os
+import sys
 from pathlib import Path
 
 

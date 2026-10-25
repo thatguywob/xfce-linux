@@ -281,6 +281,11 @@ jobs:
           done
           exit $FAILED
 
+      - name: Run Ruff
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --config ruff.toml
+
       - name: Python syntax check
         run: |
           echo "=== Python Syntax Check ==="
@@ -291,10 +296,18 @@ jobs:
           done
 
       - name: Install pytest
-        run: sudo apt-get install -y -qq python3-pytest
+        run: sudo apt-get install -y -qq python3-pytest python3-pytest-cov python3-yaml
 
       - name: Run pytest tests
-        run: python3 -m pytest tests/pytest/ -v --tb=short
+        run: python3 -m pytest tests/pytest/ -v --tb=short --cov=scripts --cov=tools --cov-report=term-missing --cov-report=xml --cov-fail-under=45
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          disable_search: true
+          # The local 45% gate still applies when Codecov is unavailable.
+          fail_ci_if_error: false
 
       - name: Test summary
         if: always()

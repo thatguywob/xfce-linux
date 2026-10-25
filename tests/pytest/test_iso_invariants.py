@@ -5,7 +5,6 @@ docs/ci-and-iso-pipeline.md troubleshooting table). Cheap to run, no
 containers needed — pure source inspection.
 """
 
-import os
 import re
 from pathlib import Path
 
@@ -159,3 +158,21 @@ def test_qemu_serial_readers_use_qemu_privileges():
     assert len(readers) >= 6
     for line in readers:
         assert re.search(r"sudo (?:grep|tail)\b", line), line
+
+
+def test_python_lint_and_coverage_are_active():
+    """Root lint/coverage configs must have consumers in the required test job."""
+    import yaml
+
+    workflow = yaml.safe_load((REPO / ".github/workflows/test.yml").read_text())
+    steps = workflow["jobs"]["unit-tests"]["steps"]
+    lint = next(step for step in steps if step.get("uses", "").startswith("astral-sh/ruff-action@"))
+    assert lint["with"]["args"] == "check --config ruff.toml"
+    command = next(step["run"] for step in steps if step.get("name") == "Run pytest tests")
+    config = yaml.safe_load((REPO / "codecov.yml").read_text())
+    target = config["coverage"]["status"]["project"]["default"]["target"].rstrip("%")
+    assert f"--cov-fail-under={target}" in command
+    assert "--cov=scripts" in command and "--cov=tools" in command
+    assert "--cov-report=xml" in command
+    upload = next(step for step in steps if step.get("uses", "").startswith("codecov/codecov-action@"))
+    assert upload["with"]["files"] == "./coverage.xml"

@@ -1,6 +1,5 @@
 """Shared fixtures for xfce-linux Python tests."""
 
-import os
 import sys
 import tempfile
 from pathlib import Path

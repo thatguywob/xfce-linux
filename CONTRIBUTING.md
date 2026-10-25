@@ -97,6 +97,14 @@ just build
 just lint
 ```
 
+Python lint and coverage can be checked locally with:
+
+```bash
+python3 -m pip install ruff pytest-cov pyyaml
+ruff check --config ruff.toml
+python3 -m pytest tests/pytest/ -v --tb=short --cov=scripts --cov=tools --cov-report=xml --cov-fail-under=45
+```
+
 Shell, YAML, workflow, and Renovate changes are also checked by ShellCheck,
 yamllint, actionlint, and `renovate-config-validator` in CI. See
 [`docs/ci-and-iso-pipeline.md`](docs/ci-and-iso-pipeline.md#guard-rails-what-stops-a-bad-commit)
