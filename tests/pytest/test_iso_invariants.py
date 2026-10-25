@@ -201,3 +201,27 @@ def test_reusable_build_workflow_is_immutable():
     script_ref = re.search(r"^\s+bst_ci_ref:\s+([0-9a-f]{40})\s*$", workflow, re.MULTILINE)
     assert script_ref, "shared planning script must also be pinned"
     assert all(ref == script_ref.group(1) for ref in refs), "update both bst-ci pins together"
+
+
+def test_r2_publication_requires_boot_and_promotes_image_last():
+    """A failed boot must never replace public objects; upload failures are fatal."""
+    import yaml
+
+    workflow = yaml.safe_load((REPO / '.github/workflows/build-iso.yml').read_text())
+    steps = next(job['steps'] for job in workflow['jobs'].values() if 'steps' in job)
+    boot = next(i for i, step in enumerate(steps) if step.get('name') == 'Boot verification (UEFI + serial)')
+    assert not steps[boot].get('continue-on-error', False)
+    uploads = [(i, step) for i, step in enumerate(steps) if 'rclone copyto' in step.get('run', '')]
+    assert uploads
+    for index, step in uploads:
+        assert index > boot
+        assert not step.get('continue-on-error', False)
+        assert step['if'] == "${{ inputs.skip_upload != true && github.event_name != 'pull_request' }}"
+        run = step['run']
+        writes = re.findall(r'rclone copyto.*?(?=\n\s*(?:rclone|#)|\Z)', run, re.S)
+        assert len(writes) == 8  # dated and latest ISO, checksum, signature, certificate
+        assert '/${DATED}.cert"' in writes[3]
+        assert 'xfce-linux-live-latest.iso-CHECKSUM"' in writes[4]
+        assert 'xfce-linux-live-latest.iso.sig"' in writes[5]
+        assert 'xfce-linux-live-latest.iso.cert"' in writes[6]
+        assert writes[-1].rstrip().endswith('/xfce-linux-live-latest.iso"')

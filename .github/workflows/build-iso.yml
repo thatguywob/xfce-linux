@@ -133,37 +133,6 @@ jobs:
           echo "sig_path=${ISO}.sig" >> "$GITHUB_OUTPUT"
           echo "cert_path=${ISO}.cert" >> "$GITHUB_OUTPUT"
 
-      - name: Upload ISO to Cloudflare R2
-        if: ${{ inputs.skip_upload != true && github.event_name != 'pull_request' }}
-        env:
-          RCLONE_CONFIG_R2_TYPE: s3
-          RCLONE_CONFIG_R2_PROVIDER: Cloudflare
-          RCLONE_CONFIG_R2_REGION: auto
-          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-        run: |
-          ISO="${{ steps.iso.outputs.path }}"
-          DATED="${{ steps.iso.outputs.dated }}"
-          rclone copyto --log-level INFO --checksum --s3-no-check-bucket "$ISO" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}"
-          rclone copyto --log-level INFO --s3-no-check-bucket "$ISO" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso"
-          rclone copyto --log-level INFO --s3-no-check-bucket \
-            "${{ steps.checksum.outputs.path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${{ steps.checksum.outputs.name }}"
-          rclone copyto --log-level INFO --s3-no-check-bucket \
-            "${{ steps.sign.outputs.sig_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}.sig"
-          rclone copyto --log-level INFO --s3-no-check-bucket \
-            "${{ steps.sign.outputs.cert_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}.cert"
-          # Same bytes as the dated ISO, so the same signature verifies it —
-          # publish under the "latest" name too so consumers of the stable
-          # download URL (validate-iso-kanpur.yml included) have something
-          # to verify against without needing to know today's dated filename.
-          rclone copyto --log-level INFO --s3-no-check-bucket \
-            "${{ steps.sign.outputs.sig_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso.sig"
-          rclone copyto --log-level INFO --s3-no-check-bucket \
-            "${{ steps.sign.outputs.cert_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso.cert"
-        continue-on-error: true
-
       - name: Boot verification (UEFI + serial)
         timeout-minutes: 10
         run: |
@@ -198,6 +167,40 @@ jobs:
           echo "quit" | sudo socat - UNIX-CONNECT:/tmp/qemu-monitor.sock || true
           sudo grep -qE "XFCE_LINUX_LIVE_READY|Finished live-ready\.service" /tmp/serial.log || \
             { echo "ERROR: Live environment did not reach ready state"; sudo tail -50 /tmp/serial.log; exit 1; }
+
+      - name: Upload ISO to Cloudflare R2
+        if: ${{ inputs.skip_upload != true && github.event_name != 'pull_request' }}
+        env:
+          RCLONE_CONFIG_R2_TYPE: s3
+          RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+          RCLONE_CONFIG_R2_REGION: auto
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          ISO="${{ steps.iso.outputs.path }}"
+          DATED="${{ steps.iso.outputs.dated }}"
+          rclone copyto --log-level INFO --checksum --s3-no-check-bucket "$ISO" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}"
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "${{ steps.checksum.outputs.path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${{ steps.checksum.outputs.name }}"
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "${{ steps.sign.outputs.sig_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}.sig"
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "${{ steps.sign.outputs.cert_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/${DATED}.cert"
+          # Publish stable verification metadata before replacing the latest ISO.
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "output/xfce-linux-live-latest.iso-CHECKSUM" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso-CHECKSUM"
+          # Same bytes as the dated ISO, so the same signature verifies it —
+          # publish under the "latest" name too so consumers of the stable
+          # download URL (validate-iso-kanpur.yml included) have something
+          # to verify against without needing to know today's dated filename.
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "${{ steps.sign.outputs.sig_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso.sig"
+          rclone copyto --log-level INFO --s3-no-check-bucket \
+            "${{ steps.sign.outputs.cert_path }}" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso.cert"
+          # The latest image is the final publication write.
+          rclone copyto --log-level INFO --s3-no-check-bucket "$ISO" "R2:${R2_BUCKET}/${{ steps.channel.outputs.r2_prefix }}/xfce-linux-live-latest.iso"
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v7
