@@ -32,6 +32,10 @@ permissions:
 jobs:
   build-and-publish:
     name: Build xfce-linux Live ISO
+    # completed also fires when the image build fails or is cancelled (#131).
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     # Always a GitHub-hosted runner -- no third-party runner escape hatch.
     runs-on: ubuntu-24.04
     permissions:

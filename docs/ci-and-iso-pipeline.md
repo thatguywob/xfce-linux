@@ -98,6 +98,7 @@ prompt, and installed desktop.
 
 | Date | Symptom | Root cause | Fix |
 |---|---|---|---|
+| 2026-10-25 | Failed Multi-Runner runs immediately launch failing Live ISO builds (#131) | `workflow_run: completed` includes failed and cancelled builds | Require a successful upstream conclusion at the ISO job boundary; push and manual triggers remain available. This suppresses failure cascades; it does not verify image publication or gate independent install E2E runs. |
 | 2026-07-19 | Every `just` call in CI fails: "multiple candidate justfiles" | `justfile` + `Justfile` both at root; just ≥1.30 hard-errors | ISO recipes moved to `iso.justfile`, imported from `Justfile` |
 | 2026-07-19 | All 10 chunk jobs building for 5+ h | `project.conf` `name:` (tromso example) renaming project changes every cache key → world rebuild | expected one-time cost; caches repopulate |
 | 2026-07-19 | Installer flatpak never launched in live session | install-flatpaks.sh baked `org.bootcinstaller.Installer` while configure-live.sh wired `org.xfceinstaller.Installer` | both sides now use `org.tunaos.InstallerXfce` |
