@@ -69,6 +69,13 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
+## Hardware repurposing & creator outreach
+
+The [hardware repurposing creator pitch kit](docs/outreach/hardware-repurposing-creator-pitch.md)
+contains reviewable story angles, target creator profiles, email pitch drafts, and
+demonstration steps for covering XFCE Linux on decade-old hardware. Creator outreach
+is tracked in [#218](https://github.com/tuna-os/xfce-linux/issues/218).
+
 ## Docs
 
 - [XFCE Linux on tunaos.org](https://tunaos.org/docs/xfce-linux)

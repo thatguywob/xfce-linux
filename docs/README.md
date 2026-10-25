@@ -22,6 +22,9 @@ status, start with the top-level docs instead:
   (not yet in effect).
 - **[adr/](adr/)** — architecture decision records (for example,
   [0001-wayland-greeter.md](adr/0001-wayland-greeter.md)).
+- **[outreach/](outreach/)** — community outreach proposals, creator pitch
+  kits, and hardware repurposing narratives (for example,
+  [hardware-repurposing-creator-pitch.md](outreach/hardware-repurposing-creator-pitch.md)).
 - **[technical/](technical/)** and **[reference/](reference/)** — dated
   session reports from early development (May to August 2026), kept for
   history. Each file carries an `ste-disable-file` marker and describes a
