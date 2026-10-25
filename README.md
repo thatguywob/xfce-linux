@@ -69,6 +69,12 @@ cosign verify-blob xfce-linux-live-<date>-<sha>.iso \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
+## Community outreach
+
+The [XFCE community announcement kit](docs/outreach/xfce-community-announcement.md)
+contains reviewable announcement drafts, source evidence, and the publication
+checklist. External publication is tracked in [#217](https://github.com/tuna-os/xfce-linux/issues/217).
+
 ## Docs
 
 - [XFCE Linux on tunaos.org](https://tunaos.org/docs/xfce-linux)
