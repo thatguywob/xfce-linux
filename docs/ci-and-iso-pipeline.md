@@ -198,3 +198,14 @@ The workflow force-pushes the stable branch to the same commit so the branch and
 tag cannot differ. It shares the concurrency group of the promotion workflow,
 so both cannot run at once. Dakota-pattern note: add a cosign verification step
 before the retag after cosign support lands.
+
+### Serial log permissions in install E2E (#135)
+
+| Symptom | Cause | Fix / invariant |
+| --- | --- | --- |
+| Plain installed boot times out, then `tail` reports `Permission denied` (run 39399656661) | QEMU runs under sudo and can create root-owned 0600 serial logs; unprivileged grep hides the read error and never sees readiness or emergency markers | Read live and plain-installed serial logs with sudo, matching QEMU and the LUKS unlock helper; `test_qemu_serial_readers_use_qemu_privileges` guards both readiness and diagnostic reads. |
+
+The earlier missing `:latest` publication failure is distinct: merged #147
+unblocked the build and #241 restored scheduled publication. The October 20
+Plain run successfully built its ISO and booted QEMU before this log-access
+failure. This fix does not establish that all guest boot failures are resolved.

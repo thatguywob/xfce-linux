@@ -387,9 +387,10 @@ luks-boot-qemu-live target:
 
     SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o PreferredAuthentications=password"
     echo "Waiting for live environment on port {{luks-qemu-ssh-port}}..."
+    # QEMU runs as root; read its serial logs with the same privileges.
     # Ready when the serial marker appears OR SSH connects (debug=1 builds).
     for i in $(seq 1 60); do
-        if grep -q "XFCE_LINUX_LIVE_READY" "{{luks-qemu-serial-live}}" 2>/dev/null; then
+        if sudo grep -q "XFCE_LINUX_LIVE_READY" "{{luks-qemu-serial-live}}" 2>/dev/null; then
             echo "Live environment ready (serial marker seen)"
             break
         fi
@@ -397,7 +398,7 @@ luks-boot-qemu-live target:
             echo "Live environment ready (SSH connected)"
             break
         fi
-        [[ "$i" -eq 60 ]] && { echo "ERROR: live env not ready after 5m"; tail -30 "{{luks-qemu-serial-live}}" || true; exit 1; }
+        [[ "$i" -eq 60 ]] && { echo "ERROR: live env not ready after 5m"; sudo tail -30 "{{luks-qemu-serial-live}}" || true; exit 1; }
         sleep 5
     done
 
@@ -539,14 +540,15 @@ plain-install-qemu target:
 plain-wait-boot target:
     #!/usr/bin/bash
     set -euo pipefail
+    # QEMU creates root-owned serial logs, possibly with mode 0600.
     echo "Waiting for installed system to boot..."
     for i in $(seq 1 60); do
-        if grep -qiE "emergency mode|emergency shell" "{{plain-qemu-serial-installed}}" 2>/dev/null; then
+        if sudo grep -qiE "emergency mode|emergency shell" "{{plain-qemu-serial-installed}}" 2>/dev/null; then
             echo "ERROR: installed system dropped to emergency shell"
-            tail -50 "{{plain-qemu-serial-installed}}" || true
+            sudo tail -50 "{{plain-qemu-serial-installed}}" || true
             exit 1
         fi
-        if grep -qE "Started gdm\.service|Started GNOME Display Manager|Started gnome-initial-setup" "{{plain-qemu-serial-installed}}" 2>/dev/null; then
+        if sudo grep -qE "Started gdm\.service|Started GNOME Display Manager|Started gnome-initial-setup" "{{plain-qemu-serial-installed}}" 2>/dev/null; then
             echo "Installed system booted successfully"
             sudo python3 "{{target}}/src/luks-unlock.py" wait-live \
                 "{{plain-qemu-monitor-installed}}" "/tmp/plain-screenshot-final.ppm" || true
@@ -556,5 +558,5 @@ plain-wait-boot target:
         sleep 5
     done
     echo "ERROR: installed system did not reach a ready state after 5m"
-    tail -50 "{{plain-qemu-serial-installed}}" || true
+    sudo tail -50 "{{plain-qemu-serial-installed}}" || true
     exit 1
