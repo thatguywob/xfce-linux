@@ -3,5 +3,19 @@
   "extends": [
     "local>tuna-os/.github",
     "local>tuna-os/.github"
+  ],
+  "packageRules": [
+    {
+      "description": "Review updates to the write-capable reusable BuildStream workflow",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "tuna-os/bst-ci"
+      ],
+      "followTag": "main",
+      "pinDigests": true,
+      "automerge": false
+    }
   ]
 }

@@ -47,11 +47,13 @@ permissions:
 jobs:
   # ── Phase 1-3: Plan, core, parallel dependency chunks ────────────────
   multirunner:
-    uses: tuna-os/bst-ci/.github/workflows/multirunner-build.yml@main
+    uses: tuna-os/bst-ci/.github/workflows/multirunner-build.yml@e62f9ae67bc90a7318bcfb318cfa26a94c13cd31 # main
     permissions:
       contents: read
       packages: write
     with:
+      # Keep in sync with the workflow pin when reviewing Renovate updates.
+      bst_ci_ref: e62f9ae67bc90a7318bcfb318cfa26a94c13cd31
       image_name: xfce-linux
       bst_target: oci/xfce-linux.bst
       num_chunks: ${{ inputs.num_chunks || '10' }}

@@ -187,3 +187,17 @@ def test_ste_workflow_is_pinned_to_full_commit_sha():
     )
     assert refs, "ste-lint reusable workflow reference missing"
     assert all(re.fullmatch(r"[0-9a-f]{40}", ref.split("#")[0].strip()) for ref in refs), refs
+
+
+def test_reusable_build_workflow_is_immutable():
+    """The shared build receives packages: write; branch refs allow code drift."""
+    workflow = (REPO / ".github/workflows/build-multirunner.yml").read_text()
+    refs = re.findall(
+        r"uses:\s+tuna-os/bst-ci/\.github/workflows/multirunner-build\.yml@(\S+)",
+        workflow,
+    )
+    assert refs, "shared build workflow reference missing"
+    assert all(re.fullmatch(r"[0-9a-f]{40}", ref) for ref in refs), refs
+    script_ref = re.search(r"^\s+bst_ci_ref:\s+([0-9a-f]{40})\s*$", workflow, re.MULTILINE)
+    assert script_ref, "shared planning script must also be pinned"
+    assert all(ref == script_ref.group(1) for ref in refs), "update both bst-ci pins together"
