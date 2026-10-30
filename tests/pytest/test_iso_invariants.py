@@ -126,3 +126,15 @@ def test_scheduled_multirunner_preserves_in_progress_builds():
     assert re.search(
         r"^\s*cancel-in-progress:\s*false\s*(?:#.*)?$", workflow, re.MULTILINE
     )
+
+
+def test_chained_iso_requires_successful_image_build():
+    """Failed/cancelled image builds must not launch an ISO against stale tags."""
+    workflow = (REPO / ".github/workflows/build-iso.yml").read_text()
+    job = workflow.split("  build-and-publish:\n", 1)[1].split("    steps:", 1)[0]
+    guard = re.search(r"    if: >-\n((?:      .*\n)+)", job)
+    assert guard, "guard the job before allocating a runner"
+    assert " ".join(guard.group(1).split()) == (
+        "github.event_name != 'workflow_run' || "
+        "github.event.workflow_run.conclusion == 'success'"
+    )
