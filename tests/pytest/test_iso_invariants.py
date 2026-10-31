@@ -96,26 +96,34 @@ def test_no_quiet_karg_in_elements():
             assert '"quiet"' not in text, f"{bst} adds quiet karg"
 
 
-def test_high_frequency_workflows_cancel_superseded_runs():
-    """Push bursts once left stale checks and image/ISO builds queued for
-    hours. Newer work on the same ref must replace those obsolete runs."""
-    workflows = REPO / ".github" / "workflows"
-    names = (
-        "test.yml",
-        "build-iso.yml",
-        "build-and-publish-xfce-linux.yml",
-    )
-    for name in names:
-        text = (workflows / name).read_text()
-        assert "concurrency:" in text, f"{name} lacks a concurrency group"
-        assert re.search(
-            r"^\s*cancel-in-progress:\s*true\s*(?:#.*)?$", text, re.MULTILINE
-        ), f"{name} queues superseded same-ref runs"
+def test_automatic_checks_and_iso_builds_preserve_every_run():
+    """Shared groups evict pending runs even with cancel-in-progress false.
 
-    iso = (workflows / "build-iso.yml").read_text()
-    assert "github.event.workflow_run.head_branch || github.ref_name" in iso, (
-        "push and workflow_run ISO triggers must normalize to the same branch key"
-    )
+    Preserve automatic triggers with run IDs; only PR updates and manual ISO
+    reruns may supersede work. Lint is part of the Test workflow.
+    """
+    workflows = REPO / ".github" / "workflows"
+    cases = {
+        "test.yml": (
+            "${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}",
+            "${{ github.event_name == 'pull_request' }}",
+        ),
+        "build-iso.yml": (
+            "${{ github.workflow }}-${{ github.event_name }}-"
+            "${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.run_id }}",
+            "${{ github.event_name == 'workflow_dispatch' }}",
+        ),
+    }
+    for name, (group, cancel) in cases.items():
+        text = (workflows / name).read_text()
+        assert f"  group: {group}\n" in text, name
+        assert f"  cancel-in-progress: {cancel}\n" in text, name
+
+
+def test_image_publish_cancels_superseded_runs():
+    text = (REPO / ".github/workflows/build-and-publish-xfce-linux.yml").read_text()
+    assert "concurrency:" in text
+    assert re.search(r"^  cancel-in-progress: true$", text, re.MULTILINE)
 
 
 def test_scheduled_multirunner_preserves_in_progress_builds():
