@@ -97,7 +97,7 @@ just build
 just lint
 ```
 
-Python lint and coverage can be checked locally with:
+To run the Python lint and coverage checks locally:
 
 ```bash
 python3 -m pip install ruff pytest-cov pyyaml

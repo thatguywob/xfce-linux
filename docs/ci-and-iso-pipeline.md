@@ -182,8 +182,8 @@ skipped job reports success, so each required check always reports. If the
 
 Unit Tests runs `ruff check --config ruff.toml` across the repository and
 measures `scripts/` and `tools/` with pytest-cov. Coverage below 45% fails
-this existing required job even if Codecov is unavailable. The XML report is
-uploaded to Codecov for the project status (45% target, 2% tolerance) and
+this existing required job even if Codecov is unavailable. The job uploads the
+XML report to Codecov for the project status (45% target, 2% tolerance) and
 informational patch status (70% target) declared in `codecov.yml`. Upload
 errors are non-fatal; Codecov service availability does not disable the local
 gate. The file-existence signal in #139 alone does not establish enforcement.
