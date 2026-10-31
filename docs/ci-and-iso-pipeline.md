@@ -208,4 +208,4 @@ before the retag after cosign support lands.
 The earlier missing `:latest` publication failure is distinct: merged #147
 unblocked the build and #241 restored scheduled publication. The October 20
 Plain run successfully built its ISO and booted QEMU before this log-access
-failure. This fix does not establish that all guest boot failures are resolved.
+failure. This fix does not resolve all guest boot failures.
