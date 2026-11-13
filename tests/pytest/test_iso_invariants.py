@@ -180,3 +180,9 @@ def test_iso_signing_preserves_detached_outputs_with_cosign3():
         assert f'test -s "${{ISO}}.{suffix}"' in signing
     assert '--output-signature "${ISO}.sig"' in signing
     assert '--output-certificate "${ISO}.cert"' in signing
+    # Fail closed before upload: verify with the consumer's detached inputs.
+    verify = signing.split("cosign verify-blob", 1)[1]
+    assert '--certificate "${ISO}.cert"' in verify
+    assert '--signature "${ISO}.sig"' in verify
+    assert "--certificate-oidc-issuer https://token.actions.githubusercontent.com" in verify
+    assert signing.index("cosign verify-blob") < signing.index("sig_path=")
